@@ -367,6 +367,7 @@
         }
 
         function runCommand(command, args = [], { targetHostId = null, isAggregating = false, timeout = 20000 } = {}) {
+            console.log("Running command", targetHostId, command, args);
             return new Promise((resolve, reject) => {
                 if (!mqttClient || !mqttClient.isConnected()) return reject(new Error("Not connected."));
                 const requestID = `req-${Date.now()}-${Math.random()}`;
@@ -382,8 +383,12 @@
                                 connectedHosts = new Set([...connectedHosts].filter(host => !timedOutHosts.has(host)));
                                 setCookie('sharebox_connected_hosts', JSON.stringify(Array.from(connectedHosts)), 30);
                             }
+                            console.log(promise.results);
                             promise.resolve(promise.results);
-                        } else { promise.reject(new Error("Command timed out.")); }
+                        } else {
+                            console.log("command failed");
+                            promise.reject(new Error("Command timed out."));
+                        }
                         delete pendingRequests[requestID];
                     }
                 }, timeout);
