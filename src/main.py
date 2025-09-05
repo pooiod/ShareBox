@@ -13,8 +13,7 @@ import tkinter as tk
 from tkinter import simpledialog
 import requests
 
-ROOT_DIR_FALLBACK = os.path.join(os.getenv('APPDATA'), 'ShareBox')
-ROOT_DIR = "C:\\Users\\ports\\Documents\\ShareBox"
+ROOT_DIR = os.path.join(os.getenv('APPDATA'), 'ShareBox')
 RAW_CHUNK_SIZE = 100 * 1024
 MQTT_BROKER = "broker.emqx.io"
 MQTT_PORT = 1883
@@ -184,11 +183,6 @@ def get_properties(file_path: str) -> str:
 def main():
     global group_id, my_id, client, ROOT_DIR
     check_for_updates()
-
-    if not os.path.exists(ROOT_DIR):
-        ROOT_DIR = ROOT_DIR_FALLBACK
-        if not os.path.exists(ROOT_DIR):
-            os.makedirs(ROOT_DIR)
 
     app_data_dir = os.getenv('APPDATA')
     group_file = os.path.join(app_data_dir, "ShareBoxGroup.txt")
