@@ -15,11 +15,11 @@ import requests
 
 ROOT_DIR_FALLBACK = os.path.join(os.getenv('APPDATA'), 'ShareBox')
 ROOT_DIR = "C:\\Users\\ports\\Documents\\ShareBox"
-RAW_CHUNK_SIZE = 100 * 1024 
+RAW_CHUNK_SIZE = 100 * 1024
 MQTT_BROKER = "broker.emqx.io"
 MQTT_PORT = 1883
 HEARTBEAT_INTERVAL = 10
-VERSION = 1.0 
+VERSION = 1.0
 
 client = None
 group_id = None
@@ -31,20 +31,20 @@ def check_for_updates():
         version_url = "https://sharebox.pages.dev/version.txt"
         response = requests.get(version_url)
         latest_version = float(response.text.strip())
-        
+
         if latest_version > VERSION:
             print(f"New version {latest_version} available. Downloading update...")
             download_url = "https://sharebox.pages.dev/output/ShareBox.exe"
             new_exe_path = os.path.join(os.path.dirname(sys.executable), "ShareBox_new.exe")
-            
+
             with requests.get(download_url, stream=True) as r:
                 r.raise_for_status()
                 with open(new_exe_path, 'wb') as f:
                     for chunk in r.iter_content(chunk_size=8192):
                         f.write(chunk)
-            
+
             print("Update downloaded. Restarting...")
-            
+
             current_exe = sys.executable
             batch_script = f"""
 @echo off
@@ -60,9 +60,10 @@ del "%~f0"
 
             subprocess.Popen(script_path, shell=True, creationflags=subprocess.CREATE_NO_WINDOW)
             sys.exit(0)
-            
+
     except Exception as e:
         print(f"Could not check for updates: {e}")
+    print("Ready")
 
 def setup_group_gui():
     root = tk.Tk()
@@ -98,12 +99,12 @@ def on_message(client, userdata, msg):
         data = json.loads(payload_str)
         command, args, request_id = data.get("command"), data.get("args", []), data.get("requestID")
         if not command or not request_id: raise ValueError("Missing command or requestID")
-        
+
         response_payload = { "requestID": request_id, "data": None, "error": None }
         try:
             path_arg = args[0] if args else ""
             target_path = ROOT_DIR if not path_arg or path_arg in ['/', '\\'] else os.path.join(ROOT_DIR, path_arg.lstrip('/\\').replace('/', os.sep))
-            
+
             if not is_safe_path(target_path):
                 raise ValueError("Access to the specified path is denied.")
 
@@ -132,14 +133,14 @@ def on_message(client, userdata, msg):
                 new_name = args[1]
                 if '..' in new_name or '/' in new_name or '\\' in new_name:
                     raise ValueError("Invalid characters in new name.")
-                
+
                 new_path = os.path.join(os.path.dirname(target_path), new_name)
 
                 if not is_safe_path(new_path):
                     raise ValueError("Access to the destination path is denied.")
                 if not os.path.exists(target_path):
                     raise FileNotFoundError("The item to rename does not exist.")
-                    
+
                 os.rename(target_path, new_path)
                 response_payload["data"] = "ok"
             elif command == "delete":
@@ -183,15 +184,15 @@ def get_properties(file_path: str) -> str:
 def main():
     global group_id, my_id, client, ROOT_DIR
     check_for_updates()
-    
+
     if not os.path.exists(ROOT_DIR):
         ROOT_DIR = ROOT_DIR_FALLBACK
         if not os.path.exists(ROOT_DIR):
             os.makedirs(ROOT_DIR)
 
-    running_dir = os.path.dirname(os.path.abspath(__file__))
-    group_file = os.path.join(running_dir, "group.txt")
-    
+    app_data_dir = os.getenv('APPDATA')
+    group_file = os.path.join(app_data_dir, "ShareBoxGroup.txt")
+
     my_id = socket.gethostname()
 
     if not os.path.exists(group_file):
@@ -201,6 +202,7 @@ def main():
     else:
         with open(group_file, 'r') as f:
             group_id = f.read().strip()
+    print(group_id)
 
     host_client_id = f'sharebox-host-{my_id}-{uuid.uuid4()}'
     client = mqtt.Client(host_client_id)
